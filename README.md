@@ -39,7 +39,7 @@ The Gold layer contains:
 ```text
 sql-data-warehouse-project/
 |
-|-- datasets/                 # Source CSV files / placeholder
+|-- datasets/                 # Expected local CSV structure documented in datasets/README.md
 |-- docs/                     # Diagrams, data catalog, naming conventions
 |-- scripts/
 |   |-- init_database.sql     # Creates database and schemas
@@ -84,7 +84,7 @@ scripts/init_database.sql
 scripts/bronze/ddl_bronze.sql
 ```
 
-4. Place the source CSV files in the expected local folders or update the paths inside:
+4. Place the source CSV files in the expected local folders described in `datasets/README.md`, or update the paths inside:
 
 ```text
 scripts/bronze/proc_load_bronze.sql
