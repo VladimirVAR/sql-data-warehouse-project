@@ -5,7 +5,7 @@ DDL Script: Create Silver Tables
 Script Purpose:
     This script creates tables in the 'silver' schema, dropping existing tables 
     if they already exist.
-	  Run this script to re-define the DDL structure of 'bronze' Tables
+	  Run this script to re-define the DDL structure of 'silver' Tables
 ===============================================================================
 */
 
@@ -60,22 +60,22 @@ CREATE TABLE silver.crm_sales_details (
 );
 GO
 
-IF OBJECT_ID('silver.erp_loc_a101', 'U') IS NOT NULL
-    DROP TABLE silver.erp_loc_a101;
+IF OBJECT_ID('silver.erp_cust_country', 'U') IS NOT NULL
+    DROP TABLE silver.erp_cust_country;
 GO
 
-CREATE TABLE silver.erp_loc_a101 (
+CREATE TABLE silver.erp_cust_country (
     cid             NVARCHAR(50),
     cntry           NVARCHAR(50),
     dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
-IF OBJECT_ID('silver.erp_cust_az12', 'U') IS NOT NULL
-    DROP TABLE silver.erp_cust_az12;
+IF OBJECT_ID('silver.erp_cust_demographics', 'U') IS NOT NULL
+    DROP TABLE silver.erp_cust_demographics;
 GO
 
-CREATE TABLE silver.erp_cust_az12 (
+CREATE TABLE silver.erp_cust_demographics (
     cid             NVARCHAR(50),
     bdate           DATE,
     gen             NVARCHAR(50),
@@ -83,11 +83,11 @@ CREATE TABLE silver.erp_cust_az12 (
 );
 GO
 
-IF OBJECT_ID('silver.erp_px_cat_g1v2', 'U') IS NOT NULL
-    DROP TABLE silver.erp_px_cat_g1v2;
+IF OBJECT_ID('silver.erp_prod_category', 'U') IS NOT NULL
+    DROP TABLE silver.erp_prod_category;
 GO
 
-CREATE TABLE silver.erp_px_cat_g1v2 (
+CREATE TABLE silver.erp_prod_category (
     id              NVARCHAR(50),  
     cat             NVARCHAR(50),
     subcat          NVARCHAR(50),

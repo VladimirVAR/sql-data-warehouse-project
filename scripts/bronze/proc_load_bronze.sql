@@ -3,17 +3,38 @@
 Stored Procedure: Load Bronze Layer (Source -> Bronze)
 ===============================================================================
 Script Purpose:
-    This stored procedure loads data into the 'bronze' schema from external CSV files. 
-    It performs the following actions:
-    - Truncates the bronze tables before loading data.
-    - Uses the `BULK INSERT` command to load data from csv Files to bronze tables.
+    Loads data into the 'bronze' schema from external CSV files.
+    Truncates each target table before inserting to ensure a clean full reload.
 
 Parameters:
-    None. 
-	  This stored procedure does not accept any parameters or return any values.
+    None.
 
 Usage Example:
     EXEC bronze.load_bronze;
+
+-------------------------------------------------------------------------------
+DEPLOYMENT CONFIGURATION — update file paths before executing
+-------------------------------------------------------------------------------
+BULK INSERT requires a literal string path; T-SQL does not allow a variable
+in the FROM clause, so paths cannot be parameterised within the procedure.
+Manage the base path at the deployment level:
+  - To change the base path: edit the hardcoded paths in this procedure body
+    before deploying (T-SQL BULK INSERT requires literal strings; there is no
+    runtime injection point for callers or SQL Server Agent)
+  - Alternative: store the path in a configuration table and call this
+    procedure from a wrapper that builds the path (may move to a config
+    table in a future iteration)
+
+Expected source layout:
+    {base_path}\source_crm\cust_info.csv
+    {base_path}\source_crm\prd_info.csv
+    {base_path}\source_crm\sales_details.csv
+    {base_path}\source_erp\cust_country.csv
+    {base_path}\source_erp\cust_demographics.csv
+    {base_path}\source_erp\prod_category.csv
+
+Current configured path: C:\sql\dwh_project\datasets\
+-------------------------------------------------------------------------------
 ===============================================================================
 */
 CREATE OR ALTER PROCEDURE bronze.load_bronze AS
@@ -80,11 +101,11 @@ BEGIN
 		PRINT '------------------------------------------------';
 		
 		SET @start_time = GETDATE();
-		PRINT '>> Truncating Table: bronze.erp_loc_a101';
-		TRUNCATE TABLE bronze.erp_loc_a101;
-		PRINT '>> Inserting Data Into: bronze.erp_loc_a101';
-		BULK INSERT bronze.erp_loc_a101
-		FROM 'C:\sql\dwh_project\datasets\source_erp\loc_a101.csv'
+		PRINT '>> Truncating Table: bronze.erp_cust_country';
+		TRUNCATE TABLE bronze.erp_cust_country;
+		PRINT '>> Inserting Data Into: bronze.erp_cust_country';
+		BULK INSERT bronze.erp_cust_country
+		FROM 'C:\sql\dwh_project\datasets\source_erp\cust_country.csv'
 		WITH (
 			FIRSTROW = 2,
 			FIELDTERMINATOR = ',',
@@ -95,11 +116,11 @@ BEGIN
 		PRINT '>> -------------';
 
 		SET @start_time = GETDATE();
-		PRINT '>> Truncating Table: bronze.erp_cust_az12';
-		TRUNCATE TABLE bronze.erp_cust_az12;
-		PRINT '>> Inserting Data Into: bronze.erp_cust_az12';
-		BULK INSERT bronze.erp_cust_az12
-		FROM 'C:\sql\dwh_project\datasets\source_erp\cust_az12.csv'
+		PRINT '>> Truncating Table: bronze.erp_cust_demographics';
+		TRUNCATE TABLE bronze.erp_cust_demographics;
+		PRINT '>> Inserting Data Into: bronze.erp_cust_demographics';
+		BULK INSERT bronze.erp_cust_demographics
+		FROM 'C:\sql\dwh_project\datasets\source_erp\cust_demographics.csv'
 		WITH (
 			FIRSTROW = 2,
 			FIELDTERMINATOR = ',',
@@ -110,11 +131,11 @@ BEGIN
 		PRINT '>> -------------';
 
 		SET @start_time = GETDATE();
-		PRINT '>> Truncating Table: bronze.erp_px_cat_g1v2';
-		TRUNCATE TABLE bronze.erp_px_cat_g1v2;
-		PRINT '>> Inserting Data Into: bronze.erp_px_cat_g1v2';
-		BULK INSERT bronze.erp_px_cat_g1v2
-		FROM 'C:\sql\dwh_project\datasets\source_erp\px_cat_g1v2.csv'
+		PRINT '>> Truncating Table: bronze.erp_prod_category';
+		TRUNCATE TABLE bronze.erp_prod_category;
+		PRINT '>> Inserting Data Into: bronze.erp_prod_category';
+		BULK INSERT bronze.erp_prod_category
+		FROM 'C:\sql\dwh_project\datasets\source_erp\prod_category.csv'
 		WITH (
 			FIRSTROW = 2,
 			FIELDTERMINATOR = ',',
@@ -133,9 +154,10 @@ BEGIN
 	BEGIN CATCH
 		PRINT '=========================================='
 		PRINT 'ERROR OCCURED DURING LOADING BRONZE LAYER'
-		PRINT 'Error Message' + ERROR_MESSAGE();
-		PRINT 'Error Message' + CAST (ERROR_NUMBER() AS NVARCHAR);
-		PRINT 'Error Message' + CAST (ERROR_STATE() AS NVARCHAR);
-		PRINT '=========================================='
+		PRINT 'Error Message: ' + ERROR_MESSAGE();
+		PRINT 'Error Number:  ' + CAST(ERROR_NUMBER() AS NVARCHAR);
+		PRINT 'Error State:   ' + CAST(ERROR_STATE()  AS NVARCHAR);
+		PRINT '==========================================' ;
+		THROW;
 	END CATCH
 END

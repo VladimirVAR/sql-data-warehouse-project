@@ -1,22 +1,23 @@
 # Datasets
 
-This folder is reserved for local source CSV files used by the data warehouse project.
+Source CSV files are **not** included in this repository. They are local execution inputs
+loaded via BULK INSERT and must not be committed to Git.
 
-The original source CSV files are not included in this repository.
-
-To run the project locally, place the source files in the following structure:
+Before running `bronze.load_bronze`, place source files under the path configured in the
+procedure (default: `C:\sql\dwh_project\datasets\`):
 
 ```
-datasets/
-├── source_crm/
-│   ├── cust_info.csv
-│   ├── prd_info.csv
-│   └── sales_details.csv
-└── source_erp/
-    ├── CUST_AZ12.csv
-    ├── LOC_A101.csv
-    └── PX_CAT_G1V2.csv
+C:\sql\dwh_project\datasets\
+|-- source_crm\
+|   |-- cust_info.csv
+|   |-- prd_info.csv
+|   `-- sales_details.csv
+`-- source_erp\
+    |-- cust_country.csv
+    |-- cust_demographics.csv
+    `-- prod_category.csv
 ```
-These files are loaded by the Bronze layer procedure:
 
-scripts/bronze/proc_load_bronze.sql
+The `datasets/` folder in this repository is a reference placeholder only.
+To use a different base path, update the hardcoded paths in
+`scripts/bronze/proc_load_bronze.sql` before deploying.

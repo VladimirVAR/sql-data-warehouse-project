@@ -24,18 +24,20 @@ This document outlines the naming conventions used for schemas, tables, views, c
 ## **Table Naming Conventions**
 
 ### **Bronze Rules**
-- All names must start with the source system name, and table names must match their original names without renaming.
+- All names must start with the source system name. The `<entity>` segment is a content-accurate
+  English description of the data; it does not have to reproduce the opaque source-system identifier.
 - **`<sourcesystem>_<entity>`**  
   - `<sourcesystem>`: Name of the source system (e.g., `crm`, `erp`).  
-  - `<entity>`: Exact table name from the source system.  
-  - Example: `crm_customer_info` → Customer information from the CRM system.
+  - `<entity>`: Content-accurate English name for the entity.
+  - Examples: `crm_cust_info`, `erp_cust_demographics` (not `erp_cust_az12`).
 
 ### **Silver Rules**
-- All names must start with the source system name, and table names must match their original names without renaming.
+- All names must start with the source system name. The `<entity>` segment is a content-accurate
+  English description of the data; it does not have to reproduce the opaque source-system identifier.
 - **`<sourcesystem>_<entity>`**  
   - `<sourcesystem>`: Name of the source system (e.g., `crm`, `erp`).  
-  - `<entity>`: Exact table name from the source system.  
-  - Example: `crm_customer_info` → Customer information from the CRM system.
+  - `<entity>`: Content-accurate English name for the entity.
+  - Examples: `crm_cust_info`, `erp_cust_demographics` (not `erp_cust_az12`).
 
 ### **Gold Rules**
 - All names must use meaningful, business-aligned names for tables, starting with the category prefix.

@@ -159,12 +159,12 @@ BEGIN
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
         PRINT '>> -------------';
 
-        -- Loading erp_cust_az12
+        -- Loading erp_cust_demographics
         SET @start_time = GETDATE();
-		PRINT '>> Truncating Table: silver.erp_cust_az12';
-		TRUNCATE TABLE silver.erp_cust_az12;
-		PRINT '>> Inserting Data Into: silver.erp_cust_az12';
-		INSERT INTO silver.erp_cust_az12 (
+		PRINT '>> Truncating Table: silver.erp_cust_demographics';
+		TRUNCATE TABLE silver.erp_cust_demographics;
+		PRINT '>> Inserting Data Into: silver.erp_cust_demographics';
+		INSERT INTO silver.erp_cust_demographics (
 			cid,
 			bdate,
 			gen
@@ -183,7 +183,7 @@ BEGIN
 				WHEN UPPER(TRIM(gen)) IN ('M', 'MALE') THEN 'Male'
 				ELSE 'n/a'
 			END AS gen -- Normalize gender values and handle unknown cases
-		FROM bronze.erp_cust_az12;
+		FROM bronze.erp_cust_demographics;
 	    SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
         PRINT '>> -------------';
@@ -192,12 +192,12 @@ BEGIN
 		PRINT 'Loading ERP Tables';
 		PRINT '------------------------------------------------';
 
-        -- Loading erp_loc_a101
+        -- Loading erp_cust_country
         SET @start_time = GETDATE();
-		PRINT '>> Truncating Table: silver.erp_loc_a101';
-		TRUNCATE TABLE silver.erp_loc_a101;
-		PRINT '>> Inserting Data Into: silver.erp_loc_a101';
-		INSERT INTO silver.erp_loc_a101 (
+		PRINT '>> Truncating Table: silver.erp_cust_country';
+		TRUNCATE TABLE silver.erp_cust_country;
+		PRINT '>> Inserting Data Into: silver.erp_cust_country';
+		INSERT INTO silver.erp_cust_country (
 			cid,
 			cntry
 		)
@@ -209,17 +209,17 @@ BEGIN
 				WHEN TRIM(cntry) = '' OR cntry IS NULL THEN 'n/a'
 				ELSE TRIM(cntry)
 			END AS cntry -- Normalize and Handle missing or blank country codes
-		FROM bronze.erp_loc_a101;
+		FROM bronze.erp_cust_country;
 	    SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
         PRINT '>> -------------';
 		
-		-- Loading erp_px_cat_g1v2
+		-- Loading erp_prod_category
 		SET @start_time = GETDATE();
-		PRINT '>> Truncating Table: silver.erp_px_cat_g1v2';
-		TRUNCATE TABLE silver.erp_px_cat_g1v2;
-		PRINT '>> Inserting Data Into: silver.erp_px_cat_g1v2';
-		INSERT INTO silver.erp_px_cat_g1v2 (
+		PRINT '>> Truncating Table: silver.erp_prod_category';
+		TRUNCATE TABLE silver.erp_prod_category;
+		PRINT '>> Inserting Data Into: silver.erp_prod_category';
+		INSERT INTO silver.erp_prod_category (
 			id,
 			cat,
 			subcat,
@@ -230,7 +230,7 @@ BEGIN
 			cat,
 			subcat,
 			maintenance
-		FROM bronze.erp_px_cat_g1v2;
+		FROM bronze.erp_prod_category;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
         PRINT '>> -------------';
@@ -244,10 +244,11 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		PRINT '=========================================='
-		PRINT 'ERROR OCCURED DURING LOADING BRONZE LAYER'
-		PRINT 'Error Message' + ERROR_MESSAGE();
-		PRINT 'Error Message' + CAST (ERROR_NUMBER() AS NVARCHAR);
-		PRINT 'Error Message' + CAST (ERROR_STATE() AS NVARCHAR);
-		PRINT '=========================================='
+		PRINT 'ERROR OCCURED DURING LOADING SILVER LAYER'
+		PRINT 'Error Message: ' + ERROR_MESSAGE();
+		PRINT 'Error Number:  ' + CAST(ERROR_NUMBER() AS NVARCHAR);
+		PRINT 'Error State:   ' + CAST(ERROR_STATE()  AS NVARCHAR);
+		PRINT '==========================================' ;
+		THROW;
 	END CATCH
 END
