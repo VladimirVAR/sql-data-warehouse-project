@@ -1,8 +1,9 @@
-# sql-data-warehouse-project
-Building a modern data warehouse with SQL Server, including ETL processes, data modeling, and analytics.
-Project that demonstrates how to build a small data warehouse from raw CSV files to analytics-ready data using a **Bronze / Silver / Gold** architecture.
+# SQL Server Data Warehouse
 
-The project integrates CRM and ERP data, cleans and standardizes it, and exposes a final star schema for reporting.
+SQL Server data warehouse integrating CRM and ERP source data through a three-layer pipeline.
+Bronze ingestion loads raw CSVs into staging tables via BULK INSERT.
+Silver applies cleaning, normalization, and deduplication rules.
+Gold exposes a star schema as analytics-ready views.
 
 ---
 
@@ -10,151 +11,144 @@ The project integrates CRM and ERP data, cleans and standardizes it, and exposes
 
 ![Data Architecture](docs/data_architecture.png)
 
-```text
-CSV Sources
-   ↓
-Bronze  → raw data loaded from CRM and ERP files
-   ↓
-Silver  → cleaned, standardized, and transformed data
-   ↓
-Gold    → business-ready views using a star schema
 ```
-
----
-
-## Data Model
+CSV Sources (CRM + ERP)
+        |
+        v
+Bronze  -- raw ingestion into staging tables
+        |
+        v
+Silver  -- cleaned, standardized, deduplicated
+        |
+        v
+Gold    -- dimensional model (dim_customers, dim_products, fact_sales)
+```
 
 ![Data Model](docs/data_model.png)
 
 The Gold layer contains:
 
-* `gold.dim_customers` — customer information enriched with demographic and location data.
-* `gold.dim_products` — product information enriched with category data.
-* `gold.fact_sales` — sales transactions connected to customers and products.
+- `gold.dim_customers` -- customer records enriched with demographic and location data
+- `gold.dim_products` -- product records enriched with category data
+- `gold.fact_sales` -- sales transactions joined to customer and product dimensions
 
 ---
 
 ## Repository Structure
 
-```text
+```
 sql-data-warehouse-project/
-|
-|-- datasets/                 # Expected local CSV structure documented in datasets/README.md
-|-- docs/                     # Diagrams, data catalog, naming conventions
+|-- datasets/               # Local CSV inputs (not committed -- see datasets/README.md)
+|-- docs/                   # Architecture diagrams, data catalog, naming conventions
 |-- scripts/
-|   |-- init_database.sql     # Creates database and schemas
-|   |-- bronze/               # Bronze tables and load procedure
-|   |-- silver/               # Silver tables and transformation procedure
-|   |-- gold/                 # Gold analytical views
-|-- tests/                    # Data quality checks
-|-- README.md
-|-- LICENSE
+|   |-- init_database.sql   # Creates DataWarehouse database and schemas
+|   |-- run_pipeline.py     # Python runner: full local rebuild in one command
+|   |-- bronze/             # Bronze DDL and load procedure
+|   |-- silver/             # Silver DDL and transformation procedure
+|   `-- gold/               # Gold analytical views
+|-- tests/                  # Data quality checks
+|-- requirements.txt        # Python dependency (pyodbc)
+`-- README.md
 ```
 
 ---
 
-## Technologies
+## Prerequisites
 
-* SQL Server
-* T-SQL
-* Stored Procedures
-* CSV source files
-* Draw.io diagrams
-* Git / GitHub
+- SQL Server or SQL Server Express
+- ODBC Driver 17 or 18 for SQL Server
+- Python 3
+- pyodbc (`pip install -r requirements.txt`)
+- Local CSV source files placed under `datasets/source_crm/` and `datasets/source_erp/`
 
 ---
 
-## How to Run
+## Dataset Layout
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/VladimirVAR/sql-data-warehouse-project.git
+```
+datasets/
+|-- source_crm/
+|   |-- cust_info.csv
+|   |-- prd_info.csv
+|   `-- sales_details.csv
+`-- source_erp/
+    |-- cust_country.csv
+    |-- cust_demographics.csv
+    `-- prod_category.csv
 ```
 
-2. Run the database setup script:
+Source files are excluded from version control.
+See `datasets/README.md` for the expected column layout.
 
-```text
+---
+
+## Quickstart
+
+Install the Python dependency:
+
+```
+python -m pip install -r requirements.txt
+```
+
+Run the full pipeline:
+
+```
+python scripts\run_pipeline.py --server .\SQLEXPRESS --dataset-root datasets
+```
+
+The runner connects to the specified SQL Server instance, recreates the DataWarehouse database,
+applies DDL for all three layers, registers stored procedures, and executes Bronze and Silver loads.
+
+Adjust `--server` for a different local instance (for example `localhost` or `.\SQLEXPRESS2022`).
+`--dataset-root` is resolved to an absolute path from the repository root before being passed to SQL Server.
+
+---
+
+## Manual Execution
+
+Individual steps can be run through SSMS or sqlcmd in this order:
+
+```
 scripts/init_database.sql
-```
-
-3. Create Bronze tables:
-
-```text
 scripts/bronze/ddl_bronze.sql
-```
-
-4. Place the source CSV files in the expected local folders described in `datasets/README.md`, or update the paths inside:
-
-```text
-scripts/bronze/proc_load_bronze.sql
-```
-
-5. Load the Bronze layer:
-
-```sql
-EXEC bronze.load_bronze;
-```
-
-6. Create and load the Silver layer:
-
-```text
 scripts/silver/ddl_silver.sql
+scripts/gold/ddl_gold.sql
+scripts/bronze/proc_load_bronze.sql
 scripts/silver/proc_load_silver.sql
 ```
 
+Then execute the ETL procedures:
+
 ```sql
+EXEC bronze.load_bronze @dataset_root = 'C:\path\to\datasets';
 EXEC silver.load_silver;
 ```
 
-7. Create the Gold views:
+---
 
-```text
-scripts/gold/ddl_gold.sql
+## Data Quality Checks
+
+Run after pipeline execution to validate the Silver and Gold layers:
+
 ```
-
-8. Run quality checks:
-
-```text
 tests/quality_checks_silver.sql
 tests/quality_checks_gold.sql
 ```
 
 ---
 
-## What This Project Demonstrates
+## What This Project Covers
 
-* Data warehouse design using Bronze, Silver, and Gold layers.
-* Loading raw CSV data with `BULK INSERT`.
-* Building repeatable ETL processes with stored procedures.
-* Cleaning and standardizing raw data.
-* Handling duplicates, invalid dates, missing values, and inconsistent business rules.
-* Creating analytical dimension and fact views.
-* Validating data quality with SQL checks.
-* Documenting architecture, data flow, naming conventions, and data catalog.
-
----
-
-## Documentation
-
-The `docs/` folder contains:
-
-* Data architecture diagram
-* Data flow diagram
-* Data integration diagram
-* Data model diagram
-* ETL overview
-* Data catalog
-* Naming conventions
-
----
-
-## Purpose
-
-This is a learning and portfolio project focused on core data engineering skills: SQL development, ETL logic, data modeling, data quality, and technical documentation.
+- SQL Server data warehouse design with Bronze / Silver / Gold layers
+- CSV ingestion using T-SQL BULK INSERT with a parameterized dataset root
+- Data cleaning, normalization, and deduplication in stored procedures
+- Dimensional modeling: customer, product, and sales entities
+- Star schema exposed as analytical views
+- Data quality validation at Silver and Gold layers
+- Local pipeline reproducibility through a Python runner
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License

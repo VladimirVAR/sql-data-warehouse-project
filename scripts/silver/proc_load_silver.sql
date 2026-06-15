@@ -20,7 +20,7 @@ Usage Example:
 
 CREATE OR ALTER PROCEDURE silver.load_silver AS
 BEGIN
-    DECLARE @start_time DATETIME, @end_time DATETIME, @batch_start_time DATETIME, @batch_end_time DATETIME; 
+    DECLARE @start_time DATETIME, @end_time DATETIME, @batch_start_time DATETIME, @batch_end_time DATETIME, @row_count INT;
     BEGIN TRY
         SET @batch_start_time = GETDATE();
         PRINT '================================================';
@@ -69,8 +69,10 @@ BEGIN
 			WHERE cst_id IS NOT NULL
 		) t
 		WHERE flag_last = 1; -- Select the most recent record per customer
+		SET @row_count = @@ROWCOUNT;
 		SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
         PRINT '>> -------------';
 
 		-- Loading silver.crm_prd_info
@@ -107,8 +109,10 @@ BEGIN
 				AS DATE
 			) AS prd_end_dt -- Calculate end date as one day before the next start date
 		FROM bronze.crm_prd_info;
+        SET @row_count = @@ROWCOUNT;
         SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
         PRINT '>> -------------';
 
         -- Loading crm_sales_details
@@ -155,8 +159,10 @@ BEGIN
 				ELSE sls_price  -- Derive price if original value is invalid
 			END AS sls_price
 		FROM bronze.crm_sales_details;
+        SET @row_count = @@ROWCOUNT;
         SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
         PRINT '>> -------------';
 
         -- Loading erp_cust_demographics
@@ -184,8 +190,10 @@ BEGIN
 				ELSE 'n/a'
 			END AS gen -- Normalize gender values and handle unknown cases
 		FROM bronze.erp_cust_demographics;
+	    SET @row_count = @@ROWCOUNT;
 	    SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
         PRINT '>> -------------';
 
 		PRINT '------------------------------------------------';
@@ -210,8 +218,10 @@ BEGIN
 				ELSE TRIM(cntry)
 			END AS cntry -- Normalize and Handle missing or blank country codes
 		FROM bronze.erp_cust_country;
+	    SET @row_count = @@ROWCOUNT;
 	    SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+        PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
         PRINT '>> -------------';
 		
 		-- Loading erp_prod_category
@@ -231,8 +241,10 @@ BEGIN
 			subcat,
 			maintenance
 		FROM bronze.erp_prod_category;
+		SET @row_count = @@ROWCOUNT;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+		PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
         PRINT '>> -------------';
 
 		SET @batch_end_time = GETDATE();

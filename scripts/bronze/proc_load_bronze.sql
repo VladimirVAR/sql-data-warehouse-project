@@ -7,41 +7,57 @@ Script Purpose:
     Truncates each target table before inserting to ensure a clean full reload.
 
 Parameters:
-    None.
+    @dataset_root  NVARCHAR(500)
+        Root path of the local CSV dataset directory.
+        Default: 'C:\sql\dwh_project\datasets'
+        Override at call time to point to any local path.
+        The personal path is supplied at execution time and is never committed.
 
-Usage Example:
+Usage:
+    -- Default neutral path (files at C:\sql\dwh_project\datasets\)
     EXEC bronze.load_bronze;
 
--------------------------------------------------------------------------------
-DEPLOYMENT CONFIGURATION — update file paths before executing
--------------------------------------------------------------------------------
-BULK INSERT requires a literal string path; T-SQL does not allow a variable
-in the FROM clause, so paths cannot be parameterised within the procedure.
-Manage the base path at the deployment level:
-  - To change the base path: edit the hardcoded paths in this procedure body
-    before deploying (T-SQL BULK INSERT requires literal strings; there is no
-    runtime injection point for callers or SQL Server Agent)
-  - Alternative: store the path in a configuration table and call this
-    procedure from a wrapper that builds the path (may move to a config
-    table in a future iteration)
+    -- Project-local path (personal path, not committed to Git)
+    EXEC bronze.load_bronze
+        @dataset_root = 'C:\Users\<you>\Desktop\sql-data-warehouse-project-github\datasets';
 
-Expected source layout:
-    {base_path}\source_crm\cust_info.csv
-    {base_path}\source_crm\prd_info.csv
-    {base_path}\source_crm\sales_details.csv
-    {base_path}\source_erp\cust_country.csv
-    {base_path}\source_erp\cust_demographics.csv
-    {base_path}\source_erp\prod_category.csv
+    -- Synthetic sample data (planned, not yet available)
+    EXEC bronze.load_bronze
+        @dataset_root = '<project_root>\datasets\sample';
 
-Current configured path: C:\sql\dwh_project\datasets\
+-------------------------------------------------------------------------------
+BULK INSERT path strategy
+-------------------------------------------------------------------------------
+BULK INSERT requires a path string literal at execution time.
+This procedure builds each path from @dataset_root using dynamic SQL
+and executes it via sp_executesql with an OUTPUT parameter to capture @@ROWCOUNT.
+Single quotes in @dataset_root are escaped before concatenation.
+
+Real CSV files are local execution inputs and must not be committed to Git.
+Place source files under the configured dataset root:
+
+    {dataset_root}\source_crm\cust_info.csv
+    {dataset_root}\source_crm\prd_info.csv
+    {dataset_root}\source_crm\sales_details.csv
+    {dataset_root}\source_erp\cust_country.csv
+    {dataset_root}\source_erp\cust_demographics.csv
+    {dataset_root}\source_erp\prod_category.csv
+
+Default path: C:\sql\dwh_project\datasets
 -------------------------------------------------------------------------------
 ===============================================================================
 */
-CREATE OR ALTER PROCEDURE bronze.load_bronze AS
+CREATE OR ALTER PROCEDURE bronze.load_bronze
+	@dataset_root NVARCHAR(500) = 'C:\sql\dwh_project\datasets'
+AS
 BEGIN
-	DECLARE @start_time DATETIME, @end_time DATETIME, @batch_start_time DATETIME, @batch_end_time DATETIME; 
+	DECLARE @start_time DATETIME, @end_time DATETIME, @batch_start_time DATETIME, @batch_end_time DATETIME, @row_count INT;
+	DECLARE @safe_root  NVARCHAR(500);
+	DECLARE @sql        NVARCHAR(MAX);
 	BEGIN TRY
 		SET @batch_start_time = GETDATE();
+		SET @safe_root = REPLACE(@dataset_root, '''', '''''');
+
 		PRINT '================================================';
 		PRINT 'Loading Bronze Layer';
 		PRINT '================================================';
@@ -54,95 +70,112 @@ BEGIN
 		PRINT '>> Truncating Table: bronze.crm_cust_info';
 		TRUNCATE TABLE bronze.crm_cust_info;
 		PRINT '>> Inserting Data Into: bronze.crm_cust_info';
-		BULK INSERT bronze.crm_cust_info
-		FROM 'C:\sql\dwh_project\datasets\source_crm\cust_info.csv'
-		WITH (
-			FIRSTROW = 2,
-			FIELDTERMINATOR = ',',
-			TABLOCK
-		);
+		SET @sql =
+		    N'BULK INSERT bronze.crm_cust_info'
+		  + N' FROM ''' + @safe_root + N'\source_crm\cust_info.csv'''
+		  + N' WITH (FIRSTROW = 2, FIELDTERMINATOR = '','', TABLOCK);'
+		  + N' SET @rc = @@ROWCOUNT;';
+		EXEC sp_executesql
+		    @sql,
+		    N'@rc INT OUTPUT',
+		    @rc = @row_count OUTPUT;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+		PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
 		PRINT '>> -------------';
 
         SET @start_time = GETDATE();
 		PRINT '>> Truncating Table: bronze.crm_prd_info';
 		TRUNCATE TABLE bronze.crm_prd_info;
-
 		PRINT '>> Inserting Data Into: bronze.crm_prd_info';
-		BULK INSERT bronze.crm_prd_info
-		FROM 'C:\sql\dwh_project\datasets\source_crm\prd_info.csv'
-		WITH (
-			FIRSTROW = 2,
-			FIELDTERMINATOR = ',',
-			TABLOCK
-		);
+		SET @sql =
+		    N'BULK INSERT bronze.crm_prd_info'
+		  + N' FROM ''' + @safe_root + N'\source_crm\prd_info.csv'''
+		  + N' WITH (FIRSTROW = 2, FIELDTERMINATOR = '','', TABLOCK);'
+		  + N' SET @rc = @@ROWCOUNT;';
+		EXEC sp_executesql
+		    @sql,
+		    N'@rc INT OUTPUT',
+		    @rc = @row_count OUTPUT;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+		PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
 		PRINT '>> -------------';
 
         SET @start_time = GETDATE();
 		PRINT '>> Truncating Table: bronze.crm_sales_details';
 		TRUNCATE TABLE bronze.crm_sales_details;
 		PRINT '>> Inserting Data Into: bronze.crm_sales_details';
-		BULK INSERT bronze.crm_sales_details
-		FROM 'C:\sql\dwh_project\datasets\source_crm\sales_details.csv'
-		WITH (
-			FIRSTROW = 2,
-			FIELDTERMINATOR = ',',
-			TABLOCK
-		);
+		SET @sql =
+		    N'BULK INSERT bronze.crm_sales_details'
+		  + N' FROM ''' + @safe_root + N'\source_crm\sales_details.csv'''
+		  + N' WITH (FIRSTROW = 2, FIELDTERMINATOR = '','', TABLOCK);'
+		  + N' SET @rc = @@ROWCOUNT;';
+		EXEC sp_executesql
+		    @sql,
+		    N'@rc INT OUTPUT',
+		    @rc = @row_count OUTPUT;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+		PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
 		PRINT '>> -------------';
 
 		PRINT '------------------------------------------------';
 		PRINT 'Loading ERP Tables';
 		PRINT '------------------------------------------------';
-		
+
 		SET @start_time = GETDATE();
 		PRINT '>> Truncating Table: bronze.erp_cust_country';
 		TRUNCATE TABLE bronze.erp_cust_country;
 		PRINT '>> Inserting Data Into: bronze.erp_cust_country';
-		BULK INSERT bronze.erp_cust_country
-		FROM 'C:\sql\dwh_project\datasets\source_erp\cust_country.csv'
-		WITH (
-			FIRSTROW = 2,
-			FIELDTERMINATOR = ',',
-			TABLOCK
-		);
+		SET @sql =
+		    N'BULK INSERT bronze.erp_cust_country'
+		  + N' FROM ''' + @safe_root + N'\source_erp\cust_country.csv'''
+		  + N' WITH (FIRSTROW = 2, FIELDTERMINATOR = '','', TABLOCK);'
+		  + N' SET @rc = @@ROWCOUNT;';
+		EXEC sp_executesql
+		    @sql,
+		    N'@rc INT OUTPUT',
+		    @rc = @row_count OUTPUT;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+		PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
 		PRINT '>> -------------';
 
 		SET @start_time = GETDATE();
 		PRINT '>> Truncating Table: bronze.erp_cust_demographics';
 		TRUNCATE TABLE bronze.erp_cust_demographics;
 		PRINT '>> Inserting Data Into: bronze.erp_cust_demographics';
-		BULK INSERT bronze.erp_cust_demographics
-		FROM 'C:\sql\dwh_project\datasets\source_erp\cust_demographics.csv'
-		WITH (
-			FIRSTROW = 2,
-			FIELDTERMINATOR = ',',
-			TABLOCK
-		);
+		SET @sql =
+		    N'BULK INSERT bronze.erp_cust_demographics'
+		  + N' FROM ''' + @safe_root + N'\source_erp\cust_demographics.csv'''
+		  + N' WITH (FIRSTROW = 2, FIELDTERMINATOR = '','', TABLOCK);'
+		  + N' SET @rc = @@ROWCOUNT;';
+		EXEC sp_executesql
+		    @sql,
+		    N'@rc INT OUTPUT',
+		    @rc = @row_count OUTPUT;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+		PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
 		PRINT '>> -------------';
 
 		SET @start_time = GETDATE();
 		PRINT '>> Truncating Table: bronze.erp_prod_category';
 		TRUNCATE TABLE bronze.erp_prod_category;
 		PRINT '>> Inserting Data Into: bronze.erp_prod_category';
-		BULK INSERT bronze.erp_prod_category
-		FROM 'C:\sql\dwh_project\datasets\source_erp\prod_category.csv'
-		WITH (
-			FIRSTROW = 2,
-			FIELDTERMINATOR = ',',
-			TABLOCK
-		);
+		SET @sql =
+		    N'BULK INSERT bronze.erp_prod_category'
+		  + N' FROM ''' + @safe_root + N'\source_erp\prod_category.csv'''
+		  + N' WITH (FIRSTROW = 2, FIELDTERMINATOR = '','', TABLOCK);'
+		  + N' SET @rc = @@ROWCOUNT;';
+		EXEC sp_executesql
+		    @sql,
+		    N'@rc INT OUTPUT',
+		    @rc = @row_count OUTPUT;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+		PRINT '>> Rows inserted: ' + CAST(@row_count AS NVARCHAR);
 		PRINT '>> -------------';
 
 		SET @batch_end_time = GETDATE();

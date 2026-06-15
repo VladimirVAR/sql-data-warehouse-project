@@ -1,0 +1,11 @@
+# Real source datasets - local execution inputs, never committed
+datasets/source_crm/
+datasets/source_erp/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Python artifacts
+__pycache__/
+*.pyc
